@@ -18,11 +18,8 @@ for some $k \in \mathbb{N}$, thenk $u_{k+1} = u_k + h(\lambda u_k) = u_k(1+ h\la
 
 ### Implementação do Forward Euler
 
-```{r}
-library(ggplot2)
-library(purrr)
-library(dplyr)
-library(tidyr)
+```{r, message = FALSE}
+library(tidyverse)
 
 euler = function(f, y0, a, b, h) {
   ts = seq(a, b, by = h)

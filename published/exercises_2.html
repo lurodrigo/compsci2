@@ -138,20 +138,16 @@ $(document).ready(function () {
 <h2>Implementações em linguagem de programação da aula 4:</h2>
 <div id="implementacao-do-forward-euler" class="section level3">
 <h3>Implementação do Forward Euler</h3>
-<pre class="r"><code>library(ggplot2)
-library(purrr)
-library(dplyr)</code></pre>
-<pre><code>## 
-## Attaching package: 'dplyr'</code></pre>
-<pre><code>## The following objects are masked from 'package:stats':
-## 
-##     filter, lag</code></pre>
-<pre><code>## The following objects are masked from 'package:base':
-## 
-##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>library(tidyr)
-
-euler = function(f, y0, a, b, h) {
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ───────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 3.0.0     ✔ purrr   0.2.5
+## ✔ tibble  1.4.2     ✔ dplyr   0.7.6
+## ✔ tidyr   0.8.1     ✔ stringr 1.3.1
+## ✔ readr   1.1.1     ✔ forcats 0.3.0</code></pre>
+<pre><code>## ── Conflicts ──────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>euler = function(f, y0, a, b, h) {
   ts = seq(a, b, by = h)
   
   y = matrix(0, nrow = length(ts), ncol = length(y0))

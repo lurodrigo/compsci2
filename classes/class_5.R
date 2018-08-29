@@ -1,7 +1,5 @@
 
-library(ggplot2)
-library(purrr)
-library(dplyr)
+library(tidyverse)
 
 euler = function(f, y0, a, b, h) {
   ts = seq(a, b, by = h)
