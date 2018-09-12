@@ -64,19 +64,41 @@ huen = function(f, y0, ts) {
   y
 }
 
-rk_mat = function(M, f, y0, a, b, h) {
-  ts = seq(a, b, by = h)
+rungeKutta = function(M, f, y0, ts) {
+  y = matrix(0, nrow = length(ts), ncol = length(y0))
+  colnames(y) = if (is.null(names(y0))) paste0("y", 1:length(y0)) else names(y0)
+  y[1,] = y0
   
-  y = double(length(ts))
-  y[1] = y0
+  # butcher tableau
+  c = M[1:(nrow(M)-1), 1]
+  A = M[2:nrow(M), 2:ncol(M)]
+  b = M[nrow(M), 2:ncol(M)]
   
+  for (i in 1:(length(ts) - 1)) {
+    h = ts[i + 1] - ts[i]
+    K = matrix(0, nrow = nrow(A), ncol = length(y0))
+    
+    K[1,] = f(ts[i], y[i,])
+    for (j in 2:nrow(K)) {
+      K[j,] = f(ts[i] + h*c[j], y[i,] + h * as.vector(A[j, 1:(j-1)] %*% K[1:j-1]))
+    }
+    
+    y[i + 1,] = y[i,] + h*b %*% K
+  }
   
+  y
 }
 
-M = matrix(c(0, 0, 0, 0, 0, 
-  .5, .5, 0, 0, 0,
-  .5, 0, .5, 0, 0,
-  1, 0, 0, 1, 0,
-  0, 1/6, 1/3, 1/3, 1/6), byrow = TRUE, nrow = 5)
+rk4 = function(f, y0, ts) {
+  M = matrix(c(0, 0, 0, 0, 0, 
+    .5, .5, 0, 0, 0,
+    .5, 0, .5, 0, 0,
+    1, 0, 0, 1, 0,
+    0, 1/6, 1/3, 1/3, 1/6), byrow = TRUE, nrow = 5)
+  
+  rungeKutta(M, f, y0, ts)
+}
+
+
 
 
