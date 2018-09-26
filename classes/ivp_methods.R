@@ -71,7 +71,7 @@ rungeKutta = function(M, f, y0, ts) {
   
   # butcher tableau
   c = M[1:(nrow(M)-1), 1]
-  A = M[2:nrow(M), 2:ncol(M)]
+  A = M[1:(nrow(M)-1), 2:ncol(M)]
   b = M[nrow(M), 2:ncol(M)]
   
   for (i in 1:(length(ts) - 1)) {
@@ -80,7 +80,7 @@ rungeKutta = function(M, f, y0, ts) {
     
     K[1,] = f(ts[i], y[i,])
     for (j in 2:nrow(K)) {
-      K[j,] = f(ts[i] + h*c[j], y[i,] + h * as.vector(A[j, 1:(j-1)] %*% K[1:j-1]))
+      K[j,] = f(ts[i] + h*c[j], y[i,] + h * as.vector(A[j, 1:(j-1)] %*% K[1:j-1,]))
     }
     
     y[i + 1,] = y[i,] + h*b %*% K
@@ -91,14 +91,13 @@ rungeKutta = function(M, f, y0, ts) {
 
 rk4 = function(f, y0, ts) {
   M = matrix(c(0, 0, 0, 0, 0, 
-    .5, .5, 0, 0, 0,
-    .5, 0, .5, 0, 0,
-    1, 0, 0, 1, 0,
-    0, 1/6, 1/3, 1/3, 1/6), byrow = TRUE, nrow = 5)
+               .5, .5, 0, 0, 0,
+               .5, 0, .5, 0, 0,
+               1, 0, 0, 1, 0,
+               0, 1/6, 1/3, 1/3, 1/6), byrow = TRUE, nrow = 5)
   
   rungeKutta(M, f, y0, ts)
 }
-
 
 
 
