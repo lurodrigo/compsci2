@@ -38,6 +38,8 @@ rk4 = function(f, y0, ts) {
   rungeKutta(M, f, y0, ts)
 }
 
+G = 6.6738480e-11
+
 init = read_csv("data/ephemerides-2018-09-26.csv") %>%
   mutate(sgp = ud.convert(sgp, "m^3/s^2", "(1e6*km)^3/(days^2)")) %>%
   mutate_at(vars(x, y, z), ~ ud.convert(., "au", "1e6km")) %>%
@@ -341,3 +343,78 @@ tbv %>%
   shadow_wake(1, size = .25, alpha = .25)
 
 anim_save("solar_out_yz_verlet.gif", path = "published")
+
+### energy
+
+compute_energy = function(tb) {
+  p = double(nrow(tb))
+  
+  for (i in 1:nrow(tb)) {
+    p[i] = with(tb, sgp[i] * sum(mass[-i] / sqrt((x[i] - x[-i])^2 + (y[i] - y[-i])^2 + (z[i] - z[-i])^2)))
+  }
+  
+  tb %>% mutate(
+    kinetic = mass*(vx^2 + vy^2 + vz^2)/2,
+    potential = p
+  )
+}
+
+
+# short run comparative graph
+tbr = read_rds("published/short_run.rds") %>% 
+  mutate(mass = sgp/G, Method = "RK4")
+
+tbv = read_rds("published/short_run_verlet.rds") %>% 
+  group_by(Body) %>%
+  mutate(mass = sgp/G,
+         vx = (lead(x) - lag(x))/4, 
+         vy = (lead(y) - lag(y))/4, 
+         vz = (lead(z) - lag(z))/4,
+         Method = "Verlet") %>%
+  ungroup()
+
+tb = bind_rows(tbr, tbv) %>%
+  group_by(t, Method) %>% 
+  do(compute_energy(.)) %>%
+  summarise(
+    potential = sum(potential),
+    kinetic = sum(kinetic)
+  )
+
+ggplot(tb) + 
+  geom_path(aes(x = t, y = kinetic + potential)) + facet_wrap(~ Method) + 
+  theme_dark() + 
+  xlab("Time (days after 2018-09-26)") +
+  ylab("Total Energy")
+
+ggsave("published/energy_short.png", scale = 1.5, width = 5)
+
+# long run comparative graph
+
+tbr = read_rds("published/long_run.rds") %>% 
+  mutate(mass = sgp/G, Method = "RK4")
+
+tbv = read_rds("published/long_run_verlet.rds") %>% 
+  group_by(Body) %>%
+  mutate(mass = sgp/G,
+         vx = (lead(x) - lag(x))/4, 
+         vy = (lead(y) - lag(y))/4, 
+         vz = (lead(z) - lag(z))/4,
+         Method = "Verlet") %>%
+  ungroup()
+
+tb = bind_rows(tbr, tbv) %>%
+  group_by(t, Method) %>% 
+  do(compute_energy(.)) %>%
+  summarise(
+    potential = sum(potential),
+    kinetic = sum(kinetic)
+  )
+
+ggplot(tb) + 
+  geom_path(aes(x = t, y = kinetic + potential)) + facet_wrap(~ Method) + 
+  theme_dark() + 
+  xlab("Time (days after 2018-09-26)") +
+  ylab("Total Energy")
+
+ggsave("published/energy_long.png", scale = 1.5, width = 5)

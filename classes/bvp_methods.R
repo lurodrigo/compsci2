@@ -37,3 +37,6 @@ map_dfr(2^(2:7) - 1, function(N) {
 
 f = function(t) sin(pi * t)
 exact = function(t) { sin(pi * t) / (pi * pi) }
+
+## shooting method
+

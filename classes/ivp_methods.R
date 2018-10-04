@@ -98,6 +98,3 @@ rk4 = function(f, y0, ts) {
   
   rungeKutta(M, f, y0, ts)
 }
-
-
-

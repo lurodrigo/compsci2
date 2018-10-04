@@ -1,7 +1,7 @@
 ---
 title: "Projeto 2"
 author: "Luiz R. S. de Souza"
-date: "September 26, 2018"
+date: "October 3, 2018"
 output: html_document
 ---
 
@@ -19,6 +19,7 @@ uma aplicação parcial deste método com uma matriz específica.
 library(tidyverse)
 library(gganimate)
 library(udunits2)
+library(magrittr)
 
 rungeKutta = function(M, f, y0, ts) {
   y = matrix(0, nrow = length(ts), ncol = length(y0))
@@ -62,8 +63,11 @@ pois os parâmetros de gravitação estão em $m^3s^{-2}$ e os ephemeris, em
 unidades astronômicas. Uso como unidade de distância $10^6 km$ por conveniência.
 
 ```{r, message = FALSE}
-init = read_csv("../data/ephemerides-2018-09-26.csv") %>%
-  mutate(sgp = ud.convert(sgp, "m^3/s^2", "(1e6*km)^3/(days^2)")) %>%
+G = 6.6738480e-11
+
+init = read_csv("data/ephemerides-2018-09-26.csv") %>%
+  mutate(mass = sgp / G, 
+    sgp = ud.convert(sgp, "m^3/s^2", "(1e6*km)^3/(days^2)")) %>%
   mutate_at(vars(x, y, z), ~ ud.convert(., "au", "1e6km")) %>%
   mutate_at(vars(vx, vy, vz), ~ ud.convert(., "au/days", "1e6km/days"))
 
@@ -319,3 +323,86 @@ O código para gerar os plots é, *mutatis mutandis*, o mesmo. Vamos para os plo
 [1]: https://en.wikipedia.org/wiki/Standard_gravitational_parameter
 [2]: https://ssd.jpl.nasa.gov/horizons.cgi#top
 
+#### Conservação de Energia
+
+Analisemos, agora, como as soluções encontradas se comportam em termos da 
+energia total do sistema. Precisamos de uma função para calcular as 
+energiais potenciais e cinéticas em um dado instante no tempo.
+
+```{r}
+compute_energy = function(tb) {
+  p = double(nrow(tb))
+  
+  for (i in 1:nrow(tb)) {
+    p[i] = with(tb, sgp[i] * sum(mass[-i] / sqrt((x[i] - x[-i])^2 + (y[i] - y[-i])^2 + (z[i] - z[-i])^2)))
+  }
+  
+  tb %>% mutate(
+    kinetic = mass*(vx^2 + vy^2 + vz^2)/2,
+    potential = p
+  )
+}
+```
+
+```{r, eval = FALSE}
+tbr = read_rds("published/short_run.rds") %>% 
+  mutate(mass = sgp/G, Method = "RK4")
+
+tbv = read_rds("published/short_run_verlet.rds") %>% 
+  group_by(Body) %>%
+  mutate(mass = sgp/G,
+         vx = (lead(x) - lag(x))/4, 
+         vy = (lead(y) - lag(y))/4, 
+         vz = (lead(z) - lag(z))/4,
+         Method = "Verlet") %>%
+  ungroup()
+
+tb = bind_rows(tbr, tbv) %>%
+  group_by(t, Method) %>% 
+  do(compute_energy(.)) %>%
+  summarise(
+    potential = sum(potential),
+    kinetic = sum(kinetic)
+  )
+
+ggplot(tb) + 
+  geom_path(aes(x = t, y = kinetic + potential)) + facet_wrap(~ Method) + 
+  theme_dark() + 
+  xlab("Time (days after 2018-09-26)") +
+  ylab("Total Energy")
+
+ggsave("published/energy_short.png", scale = 1.5, width = 5))
+```
+
+![Total Energy](../published/energy_short.png)
+```{r, eval = FALSE}
+tbr = read_rds("published/long_run.rds") %>% 
+  mutate(mass = sgp/G, Method = "RK4")
+
+tbv = read_rds("published/long_run_verlet.rds") %>% 
+  group_by(Body) %>%
+  mutate(mass = sgp/G,
+         vx = (lead(x) - lag(x))/4, 
+         vy = (lead(y) - lag(y))/4, 
+         vz = (lead(z) - lag(z))/4,
+         Method = "Verlet") %>%
+  ungroup()
+
+tb = bind_rows(tbr, tbv) %>%
+  group_by(t, Method) %>% 
+  do(compute_energy(.)) %>%
+  summarise(
+    potential = sum(potential),
+    kinetic = sum(kinetic)
+  )
+
+ggplot(tb) + 
+  geom_path(aes(x = t, y = kinetic + potential)) + facet_wrap(~ Method) + 
+  theme_dark() + 
+  xlab("Time (days after 2018-09-26)") +
+  ylab("Total Energy")
+
+ggsave("published/energy_long.png", scale = 1.5, width = 5))
+```
+
+![Total Energy](../published/energy_long.png)
